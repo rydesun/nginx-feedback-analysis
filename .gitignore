@@ -1,5 +1,4 @@
 pkg/
-data/
 config/
-.idea/
-src/log_analysis/vendor/
+
+src/analysis-tools/vendor/

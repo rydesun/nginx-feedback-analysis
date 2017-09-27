@@ -1,17 +1,13 @@
 Workspace := $(shell pwd)
-GoInstallCmd := env GOPATH=$(Workspace) go install -v log_analysis/cmd
+GoInstallCmd := env GOPATH=$(Workspace) go install -v analysis-tools
 Commands = feedback-count
 
-# default target
-bin: $(Commands)
+.PHONY: bin go-vender
 
-.PHONY: bin clean
+bin: $(Commands)
 
 $(Commands):
 	$(GoInstallCmd)/$@
 
-go_vendor:
-	cd src/log_analysis; env GOPATH=$(Workspace) dep ensure -vendor-only
-
-clean:
-	-rm bin/*
+go-vendor:
+	cd src/analysis-tools; env GOPATH=$(Workspace) dep ensure -vendor-only
