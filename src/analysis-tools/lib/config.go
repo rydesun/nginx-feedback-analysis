@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	LogWatch *ConfigLogWatch
+	BbsDb    *ConfigBbsDb
 	Db       *ConfigDb
 	Dir      *ConfigDir
 }
@@ -20,6 +21,14 @@ type ConfigLogWatch struct {
 	FilePattern string
 }
 
+type ConfigBbsDb struct {
+	Host     string
+	Port     uint
+	Database string
+	User     string
+	Password string
+}
+
 type ConfigDb struct {
 	Host     string
 	Port     uint
@@ -29,6 +38,10 @@ type ConfigDb struct {
 }
 
 func (c *ConfigDb) PortStr() string {
+	return strconv.Itoa(int(c.Port))
+}
+
+func (c *ConfigBbsDb) PortStr() string {
 	return strconv.Itoa(int(c.Port))
 }
 

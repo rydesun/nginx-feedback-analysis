@@ -1,6 +1,6 @@
 Workspace := $(shell pwd)
 GoInstallCmd := env GOPATH=$(Workspace) go install -v analysis-tools
-Commands = feedback-count
+Commands = feedback-count bbs-count
 
 .PHONY: bin go-vender
 
