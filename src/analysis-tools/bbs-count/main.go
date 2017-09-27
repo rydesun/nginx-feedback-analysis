@@ -71,7 +71,7 @@ func main() {
 	_, err = endDb.Exec(`
 	INSERT INTO bbs_daily_stat (num_user, num_zh_thread, num_zh_post, num_en_thread, num_en_post, time)
 	VALUES($1, $2, $3, $4, $5, $6)
-	`, d.NumUsers, d.NumThreads-d.NumEnThreads, d.NumPosts-d.NumEnPosts, d.NumThreads, d.NumEnPosts, ntime)
+	`, d.NumUsers, d.NumThreads-d.NumEnThreads, d.NumPosts-d.NumEnPosts, d.NumEnThreads, d.NumEnPosts, ntime)
 	if err != nil {
 		lib.Logger.Fatal(err)
 	}
