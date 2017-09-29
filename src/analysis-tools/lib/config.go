@@ -14,34 +14,31 @@ type Config struct {
 	Dir      *ConfigDir
 }
 
+type Db struct {
+	Host     string
+	Port     uint
+	Database string
+	User     string
+	Password string
+}
+
 // UrlBase: http://logs.corp.deepin.io/feedback
 // FilePattern: feedback.deepin.org_access.log.([0-9]{4}-[0-9]{2}-[0-9]{2}).gz
 type ConfigLogWatch struct {
 	UrlBase     string
 	FilePattern string
+	Db
 }
 
 type ConfigBbsDb struct {
-	Host     string
-	Port     uint
-	Database string
-	User     string
-	Password string
+	Db
 }
 
 type ConfigDb struct {
-	Host     string
-	Port     uint
-	Database string
-	User     string
-	Password string
+	Db
 }
 
-func (c *ConfigDb) PortStr() string {
-	return strconv.Itoa(int(c.Port))
-}
-
-func (c *ConfigBbsDb) PortStr() string {
+func (c Db) PortStr() string {
 	return strconv.Itoa(int(c.Port))
 }
 

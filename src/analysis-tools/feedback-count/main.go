@@ -16,8 +16,19 @@ import (
 
 	"analysis-tools/lib"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/pkg/errors"
 )
+
+var (
+	cfg        *lib.Config
+	feedbackDb *sql.DB
+)
+
+type Count struct {
+	View   LangCount `json:"view"`
+	Closed LangCount `json:"closed"`
+}
 
 type LangCount struct {
 	ZH int `db:"zh-cn" json:"zh-cn"`
@@ -30,7 +41,7 @@ func getLastDate(db *sql.DB) time.Time {
 	return date
 }
 
-func insertLog(db *sql.DB, date time.Time, count LangCount) error {
+func insertLog(db *sql.DB, date time.Time, count Count) error {
 	jsonData, err := json.Marshal(count)
 	if err != nil {
 		return err
@@ -56,15 +67,17 @@ func parseHtml(page string, filePattern string) (dateUrlPairs [][2]string) {
 	return
 }
 
-func parseLog(fr io.Reader) LangCount {
+func parseLog(feedbackDb *sql.DB, fr io.Reader) Count {
 	gzr, err := gzip.NewReader(fr)
 	if err != nil {
 		lib.Logger.Fatal(errors.Wrap(err, "new gzip reader failed"))
 	}
 	defer gzr.Close()
 
-	count := LangCount{}
+	count := Count{}
 	reader := gzr
+	var ids []string
+
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		r := regexp.MustCompile("\"[^\"]*\"")
@@ -86,21 +99,52 @@ func parseLog(fr io.Reader) LangCount {
 			}
 			switch language[0] {
 			case "zh-cn":
-				count.ZH++
+				count.View.ZH++
 			case "en":
-				count.EN++
+				count.View.EN++
+			}
+		}
+		if method == "GET" && u.Path == "/feedback/close" {
+			idSeg := u.Query()["id"]
+			if len(idSeg) != 0 {
+				ids = append(ids, idSeg[0])
+			}
+		}
+	}
+	if len(ids) != 0 {
+		var language string
+		rows, err := feedbackDb.Query("SELECT language FROM question WHERE id in (" + strings.Join(ids, ", ") + ")")
+		if err != nil {
+			lib.Logger.Fatalln("failed to query")
+		}
+		for rows.Next() {
+			rows.Scan(&language)
+			switch language {
+			case "zh_cn":
+				count.Closed.ZH++
+			case "en":
+				count.Closed.EN++
 			}
 		}
 	}
 	return count
 }
 
-func main() {
-	cfg, err := lib.LoadDefaultConfig()
+func init() {
+	var err error
+	cfg, err = lib.LoadDefaultConfig()
 	if err != nil {
 		lib.Logger.Fatal(errors.Wrap(err, "load config failed"))
 	}
 
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", cfg.LogWatch.User, cfg.LogWatch.Password, cfg.LogWatch.Host, cfg.LogWatch.PortStr(), cfg.LogWatch.Database)
+	feedbackDb, err = sql.Open("mysql", dsn)
+	if err != nil {
+		lib.Logger.Fatal(errors.Wrap(err, "connect db failed"))
+	}
+}
+
+func main() {
 	db, err := lib.ConnectDB(cfg)
 	if err != nil {
 		lib.Logger.Fatal(errors.Wrap(err, "connect db failed"))
@@ -134,7 +178,7 @@ func main() {
 			if err != nil {
 				lib.Logger.Println(err)
 			}
-			count := parseLog(resp.Body)
+			count := parseLog(feedbackDb, resp.Body)
 			err = insertLog(db, date, count)
 			if err != nil {
 				lib.Logger.Println(err)
