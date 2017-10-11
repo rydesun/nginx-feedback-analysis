@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -107,6 +108,10 @@ func parseLog(feedbackDb *sql.DB, fr io.Reader) Count {
 		if method == "GET" && u.Path == "/feedback/close" {
 			idSeg := u.Query()["id"]
 			if len(idSeg) != 0 {
+				if _, err = strconv.Atoi(idSeg[0]); err != nil {
+					lib.Logger.Printf("broken close id: %s", idSeg[0])
+					continue
+				}
 				ids = append(ids, idSeg[0])
 			}
 		}
@@ -115,7 +120,7 @@ func parseLog(feedbackDb *sql.DB, fr io.Reader) Count {
 		var language string
 		rows, err := feedbackDb.Query("SELECT language FROM question WHERE id in (" + strings.Join(ids, ", ") + ")")
 		if err != nil {
-			lib.Logger.Fatalln("failed to query")
+			lib.Logger.Fatalln("failed to query", err, ids)
 		}
 		for rows.Next() {
 			rows.Scan(&language)
